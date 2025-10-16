@@ -35,20 +35,20 @@ swsConn OBJECT IDENTIFIER ::= { swsObjects 5 }
 --           Device Group
 -- ====================================
 
-swsDeviceModel OBJECT-TYPE
+swsName OBJECT-TYPE
   SYNTAX      DisplayString (SIZE(1..64))
-  MAX-ACCESS  read-only
+  MAX-ACCESS  read-write
   STATUS      current
   DESCRIPTION
-    "Modelo comercial do smartwatch (ex.: 'Galaxy Fit SM-R370')."
+    "Nome do dispositivo"
 ::= { swsDevice 1 }
 
-swsFirmwareVersion OBJECT-TYPE
+swsSerialNumber OBJECT-TYPE
   SYNTAX      DisplayString (SIZE(1..64))
   MAX-ACCESS  read-only
   STATUS      current
   DESCRIPTION
-    "Versao do firmware presente no dispositivo"
+    "Numero de serie do dispositivo"
 ::= { swsDevice 2 }
 
 swsLastBootTime OBJECT-TYPE
@@ -98,25 +98,34 @@ swsHeartRateCurrent OBJECT-TYPE
 ::= { swsHealth 1 }
 
 swsStressLevel OBJECT-TYPE
-  SYNTAX      Integer32 (0..100)
+  SYNTAX      INTEGER { Relaxado(1),
+                        Baixo(2),
+                        Moderado(3),
+                        Alto(4)
+                      }
   MAX-ACCESS  read-only
   STATUS      current
   DESCRIPTION
-    "Nivel de estresse estimado (0 = baixo, 100 = alto)"
+    "Nivel de estresse estimado
+       1 - Relaxado
+       2 - Baixo
+       3 - Moderado
+       4 - Alto
+    "
 ::= { swsHealth 2 }
 
 swsSleepDuration OBJECT-TYPE
-  SYNTAX      Unsigned32 (0..300)
-  UNITS       "minuto"
+  SYNTAX      TimeTicks
   MAX-ACCESS  read-only
   STATUS      current
   DESCRIPTION
-    "Duracao do sono em minutos"
+    "Duracao do sono em time ticks (centesimos de segundos)"
 ::= { swsHealth 3 }
 
 swsWaterIntakeCupsToday OBJECT-TYPE
   SYNTAX      Unsigned32
-  MAX-ACCESS  read-only
+  UNITS       "mL"
+  MAX-ACCESS  read-write
   STATUS      current
   DESCRIPTION
     "Quantidade de copos de agua ingeridos no dia a dia"
@@ -135,12 +144,11 @@ swsStepsToday OBJECT-TYPE
 ::= { swsActivity 1 }
 
 swsActiviteMinutesToday OBJECT-TYPE
-  SYNTAX      Unsigned32
-  UNITS       "minutos"
+  SYNTAX      TimeTicks
   MAX-ACCESS  read-only
   STATUS      current
   DESCRIPTION
-    "Minutos de atividade fisica acumulados durante o dia"
+    "Tempo de atividade fisica acumulados durante o dia"
 ::= { swsActivity 2 }
 
 swsCaloriesToday OBJECT-TYPE
@@ -232,8 +240,8 @@ swsFindMyPhone OBJECT-TYPE
 
 swsBasicGroup OBJECT-GROUP
   OBJECTS {
-    swsDeviceModel,
-    swsFirmwareVersion,
+    swsName,
+    swsSerialNumber,
     swsLastBootTime,
     swsBatteryLevel,
     swsBatteryStatus,
