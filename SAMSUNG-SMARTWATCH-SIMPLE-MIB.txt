@@ -1,11 +1,11 @@
 SAMSUNG-SMARTWATCH-MIB DEFINITIONS ::= BEGIN
 
 IMPORTS
-  MODULE-IDENTITY, OBJECT-TYPE, Integer32, Unsigned32, enterprises
+  MODULE-IDENTITY, OBJECT-TYPE, Integer32, Unsigned32, enterprises, NOTIFICATION-TYPE
     FROM SNMPv2-SMI
   DisplayString, TruthValue, DateAndTime
     FROM SNMPv2-TC
-  MODULE-COMPLIANCE, OBJECT-GROUP
+  MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
     FROM SNMPv2-CONF;
 
 samsungSmartwatchMIB MODULE-IDENTITY
@@ -238,6 +238,32 @@ swsFindMyPhone OBJECT-TYPE
     "Permite acionar o: encontre meu telefone a partir do relogio"
 ::= { swsConn 3 }
 
+-- ====================================
+--           Notifications
+-- ====================================
+
+swsFindMyPhone NOTIFICATION-TYPE
+ OBJECTS { swsFindMyPhone, swsName }
+  STATUS      current
+  DESCRIPTION
+    "Evento do recurso 'Encontrar meu telefone' acionado a partir do relogio."
+::= { swsNotifications 1 }
+
+swsBatteryLow NOTIFICATION-TYPE
+  OBJECTS { swsBatteryLevel, swsBatteryStatus, swsName }
+  STATUS      current
+  DESCRIPTION
+    "Alerta de bateria baixa. Recomenda-se emitir quando o nivel de
+     bateria cair para um limiar configurado."
+::= { swsNotifications 2 }
+
+swsBluetoothStateChange NOTIFICATION-TYPE
+  OBJECTS { swsBluetoothState, swsBluetoothAddress, swsName }
+  STATUS      current
+  DESCRIPTION
+    "Mudanca de estado do Bluetooth (conectado/desconectado)."
+::= { swsNotifications 3 }
+
 swsBasicGroup OBJECT-GROUP
   OBJECTS {
     swsName,
@@ -267,6 +293,17 @@ swsBasicGroup OBJECT-GROUP
      Device, Health, Activity, System e Connection."
 ::= { swsConformance 1 }
 
+swsNotificationGroup NOTIFICATION-GROUP
+  NOTIFICATIONS {
+    swsFindMyPhoneTriggered,
+    swsBatteryLow,
+    swsBluetoothStateChange   
+  }
+  STATUS      current
+  DESCRIPTION
+    "Conjunto de notificacoes que o smartwatch envia automaticamente para o gerente."
+::= { swsConformance 2 }
+
 swsBasicCompliance MODULE-COMPLIANCE
   STATUS      current
   DESCRIPTION
@@ -275,6 +312,8 @@ swsBasicCompliance MODULE-COMPLIANCE
      os objetos do grupo basico."
   MODULE
     MANDATORY-GROUPS { swsBasicGroup }
-::= { swsConformance 2 }
+    GROUP           { swsNotificationGroup }
+      DESCRIPTION   "Recomendado para emissao de traps/notifications."
+::= { swsConformance 3 }
 
 END
