@@ -1,9 +1,9 @@
 SAMSUNG-SMARTWATCH-MIB DEFINITIONS ::= BEGIN
 
 IMPORTS
-  MODULE-IDENTITY, OBJECT-TYPE, Integer32, Unsigned32, enterprises, NOTIFICATION-TYPE
+  MODULE-IDENTITY, OBJECT-TYPE, Integer32, Unsigned32, TimeTicks, enterprises, NOTIFICATION-TYPE
     FROM SNMPv2-SMI
-  DisplayString, TruthValue, DateAndTime
+  DisplayString, TruthValue, DateAndTime, MacAddress
     FROM SNMPv2-TC
   MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
     FROM SNMPv2-CONF;
@@ -98,10 +98,10 @@ swsHeartRateCurrent OBJECT-TYPE
 ::= { swsHealth 1 }
 
 swsStressLevel OBJECT-TYPE
-  SYNTAX      INTEGER { Relaxado(1),
-                        Baixo(2),
-                        Moderado(3),
-                        Alto(4)
+  SYNTAX      INTEGER { relaxado(1),
+                        baixo(2),
+                        moderado(3),
+                        alto(4)
                       }
   MAX-ACCESS  read-only
   STATUS      current
@@ -130,6 +130,15 @@ swsWaterIntakeCupsToday OBJECT-TYPE
   DESCRIPTION
     "Quantidade de copos de agua ingeridos no dia a dia"
 ::= { swsHealth 4 }
+
+swsFallDetected OBJECT-TYPE
+  SYNTAX      TruthValue
+  MAX-ACCESS  read-only
+  STATUS      current
+  DESCRIPTION
+    "Estado do sensor de queda: true(1); false(2) indica ausencia
+     de evento."
+::= { swsHealth 5 }
 
 -- ====================================
 --           Activity Group
@@ -216,18 +225,18 @@ swsBluetoothState OBJECT-TYPE
   SYNTAX      INTEGER { disconnected(1),
                         connected(2)
                       }
-  MAX-ACCESS  read-only
+  MAX-ACCESS  read-write
   STATUS      current
   DESCRIPTION
     "Estado da conexao bluetooth: Discconected(1) ou Connected(2)"
 ::= { swsConn 1 }
 
 swsBluetoothAddress OBJECT-TYPE
-  SYNTAX      DisplayString(SIZE(12..32))
+  SYNTAX      MacAddress
   MAX-ACCESS  read-only
   STATUS      current
   DESCRIPTION
-    "Endereco bluetooth do smartwatch"
+    "Endereco MAC de bluetooth do smartwatch"
 ::= { swsConn 2 }
 
 swsFindMyPhone OBJECT-TYPE
@@ -238,19 +247,29 @@ swsFindMyPhone OBJECT-TYPE
     "Permite acionar o: encontre meu telefone a partir do relogio"
 ::= { swsConn 3 }
 
+swsFindMyPhoneTriggerState OBJECT-TYPE
+  SYNTAX      TruthValue
+  MAX-ACCESS  accessible-for-notify
+  STATUS      current
+  DESCRIPTION
+    "Estado do ultimo disparo de 'Encontrar meu telefone':
+     true(1) indica que o evento foi acionado recentemente; o agente pode
+     limpar para false(2) apos um tempo."
+::= { swsConn 4 }
+
 -- ====================================
 --           Notifications
 -- ====================================
 
-swsFindMyPhone NOTIFICATION-TYPE
- OBJECTS { swsFindMyPhone, swsName }
+swsFindMyPhoneTriggered NOTIFICATION-TYPE
+ OBJECTS { swsFindMyPhoneTriggerState }
   STATUS      current
   DESCRIPTION
     "Evento do recurso 'Encontrar meu telefone' acionado a partir do relogio."
 ::= { swsNotifications 1 }
 
 swsBatteryLow NOTIFICATION-TYPE
-  OBJECTS { swsBatteryLevel, swsBatteryStatus, swsName }
+  OBJECTS { swsBatteryLevel }
   STATUS      current
   DESCRIPTION
     "Alerta de bateria baixa. Recomenda-se emitir quando o nivel de
@@ -258,11 +277,21 @@ swsBatteryLow NOTIFICATION-TYPE
 ::= { swsNotifications 2 }
 
 swsBluetoothStateChange NOTIFICATION-TYPE
-  OBJECTS { swsBluetoothState, swsBluetoothAddress, swsName }
+  OBJECTS { swsBluetoothState }
   STATUS      current
   DESCRIPTION
     "Mudanca de estado do Bluetooth (conectado/desconectado)."
 ::= { swsNotifications 3 }
+
+swsFallEvent NOTIFICATION-TYPE
+  OBJECTS { swsFallDetected }
+  STATUS  current
+  DESCRIPTION
+    "Notificacao emitida quando o algoritmo de deteccao identifica uma queda.
+     Recomenda-se enviar imediatamente e, opcionalmente, repetir como INFORM
+     confiavel. O campo swsFallDetected deve estar em true(1) quando a trap
+     for gerada."
+::= { swsNotifications 4 }
 
 swsBasicGroup OBJECT-GROUP
   OBJECTS {
@@ -278,6 +307,7 @@ swsBasicGroup OBJECT-GROUP
     swsStepsToday,
     swsActiviteMinutesToday,
     swsCaloriesToday,
+    swsFallDetected,
     swsDndMode,
     swsGoodNightMode,
     swsWaterLockMode,
@@ -285,7 +315,8 @@ swsBasicGroup OBJECT-GROUP
     swsBrightnessLevel,
     swsBluetoothState,
     swsBluetoothAddress,
-    swsFindMyPhone
+    swsFindMyPhone,
+    swsFindMyPhoneTriggerState
   }
   STATUS      current
   DESCRIPTION
@@ -297,7 +328,8 @@ swsNotificationGroup NOTIFICATION-GROUP
   NOTIFICATIONS {
     swsFindMyPhoneTriggered,
     swsBatteryLow,
-    swsBluetoothStateChange   
+    swsBluetoothStateChange, 
+    swsFallEvent
   }
   STATUS      current
   DESCRIPTION
@@ -312,7 +344,7 @@ swsBasicCompliance MODULE-COMPLIANCE
      os objetos do grupo basico."
   MODULE
     MANDATORY-GROUPS { swsBasicGroup }
-    GROUP           { swsNotificationGroup }
+    GROUP           swsNotificationGroup 
       DESCRIPTION   "Recomendado para emissao de traps/notifications."
 ::= { swsConformance 3 }
 
